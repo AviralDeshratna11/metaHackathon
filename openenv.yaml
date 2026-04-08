@@ -1,0 +1,135 @@
+# openenv.yaml — OpenEnv Spec v1.0
+# Pokemon Red Mini-RL Environment
+
+name: PokemonRed-v1
+version: "1.0.0"
+description: >
+  A Mini-RL environment for Pokémon Red (Game Boy) that wraps the PyBoy emulator.
+  The agent learns to navigate Kanto, battle trainers, and collect badges using
+  PPO with CNN+LSTM policy. Supports 5 graded tasks. Evaluation via LLM scoring
+  + programmatic reward checks.
+
+author: pokemon-rl-hackathon
+license: MIT
+
+# ── Endpoints ─────────────────────────────────────────────────────────────
+endpoints:
+  reset:
+    description: "Reset environment, return initial observation dict."
+    returns:
+      type: dict
+      schema:
+        screen:     {type: ndarray, shape: [144, 160, 3], dtype: uint8}
+        game_state: {type: ndarray, shape: [32],          dtype: float32}
+
+  step:
+    description: "Execute action, return (obs, reward, done, info)."
+    params:
+      action: {type: int, range: [0, 7]}
+    returns:
+      - obs:    {type: dict}
+      - reward: {type: float, range: [0.0, 5.0]}
+      - done:   {type: bool}
+      - info:   {type: dict}
+
+  state:
+    description: "JSON-serialisable environment state snapshot."
+    returns:
+      type: dict
+      schema:
+        step:          {type: int}
+        total_reward:  {type: float}
+        badges:        {type: int,   range: [0, 8]}
+        level:         {type: int,   range: [1, 100]}
+        maps_visited:  {type: int}
+        tiles_visited: {type: int}
+        game_state:    {type: list,  length: 32}
+
+# ── Action space ──────────────────────────────────────────────────────────
+action_space:
+  type: discrete
+  n: 8
+  labels:
+    0: move_down
+    1: move_left
+    2: move_right
+    3: move_up
+    4: press_a
+    5: press_b
+    6: start
+    7: select
+
+# ── Observation space ─────────────────────────────────────────────────────
+observation_space:
+  type: dict
+  spaces:
+    screen:
+      type: box
+      shape: [144, 160, 3]
+      dtype: uint8
+      low: 0
+      high: 255
+    game_state:
+      type: box
+      shape: [32]
+      dtype: float32
+      low: 0.0
+      high: 1.0
+
+# ── Tasks & graders ───────────────────────────────────────────────────────
+tasks:
+  - id: obtain_first_badge
+    description: "Defeat Brock and earn the Boulder Badge."
+    grader: graders.task_graders.ObtainFirstBadgeGrader
+    reward_range: [0.0, 1.0]
+
+  - id: reach_cerulean_city
+    description: "Navigate to Cerulean City (past Mt. Moon)."
+    grader: graders.task_graders.ReachCeruleanCityGrader
+    reward_range: [0.0, 1.0]
+
+  - id: catch_pokemon
+    description: "Catch at least one wild Pokémon."
+    grader: graders.task_graders.CatchPokemonGrader
+    reward_range: [0.0, 1.0]
+
+  - id: defeat_rival_oak_lab
+    description: "Win the opening rival battle in Oak's Lab."
+    grader: graders.task_graders.DefeatRivalOakLabGrader
+    reward_range: [0.0, 1.0]
+
+  - id: level_up_starter
+    description: "Raise starter Pokémon to Level 10."
+    grader: graders.task_graders.LevelUpStarterGrader
+    reward_range: [0.0, 1.0]
+
+# ── Infra constraints (per hackathon spec) ────────────────────────────────
+infra:
+  max_inference_time_minutes: 20
+  min_vcpu: 2
+  min_memory_gb: 8
+  inference_script: inference.py
+
+# ── Environment variables ─────────────────────────────────────────────────
+env_vars:
+  API_BASE_URL:
+    description: "OpenAI-compatible LLM API endpoint."
+    required: true
+  MODEL_NAME:
+    description: "Model identifier for LLM inference."
+    required: true
+  HF_TOKEN:
+    description: "Hugging Face / API key."
+    required: true
+  ROM_PATH:
+    description: "Path to pokemon_red.gb ROM file."
+    required: false
+    default: "pokemon_red.gb"
+  USE_STUB:
+    description: "Set to 1 to use stub env (no ROM needed)."
+    required: false
+    default: "1"
+  CHECKPOINT:
+    description: "Path to PPO model checkpoint (.pt)."
+    required: false
+    default: "checkpoints/best.pt"

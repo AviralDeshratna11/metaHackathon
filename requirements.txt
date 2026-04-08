@@ -1,0 +1,28 @@
+# Core RL
+torch>=2.2.0
+torchvision>=0.17.0
+numpy>=1.26.0
+gymnasium>=0.29.1
+
+# Game Boy emulator
+pyboy>=2.0.0
+
+# LLM client (mandatory per hackathon spec)
+openai>=1.30.0
+
+# Utilities
+pyyaml>=6.0
+requests>=2.31.0
+tqdm>=4.66.0
+matplotlib>=3.8.0
+pandas>=2.2.0
+pillow>=10.3.0
+
+# HuggingFace
+huggingface-hub>=0.22.0
+
+# Offline RL (optional — for battle combat prototype)
+# d3rlpy>=2.3.0
+
+# Imitation learning (optional — future direction)
+# imitation>=1.0.0
